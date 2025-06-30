@@ -22,15 +22,15 @@
       color: #f09;
       margin: 0.5rem 0;
     }
-    .drink {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 0.3rem 0;
-      padding: 0.4rem;
-      background: #222;
-      border-radius: 6px;
-      font-size: 0.9rem;
+.drink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem;
+  background: #222;
+  border-radius: 6px;
+  font-size: 0.95rem;
     }
     .drink-controls {
       display: flex;
@@ -153,13 +153,14 @@ function renderDrinks() {
   drinks.forEach((drink, i) => {
     const div = document.createElement("div");
     div.className = "drink";
-    div.innerHTML = `
-      <span>${drink.name} – ${drink.price}€</span>
-      <div class="drink-controls">
-        <button onclick="changeQty(${i}, -1)">−</button>
-        <span id="qty-${i}">0</span>
-        <button onclick="changeQty(${i}, 1)">+</button>
-      </div>
+div.innerHTML = `
+  <div style="flex: 1;">${drink.name}</div>
+  <div style="width: 3.5rem; text-align: right;">${drink.price.toFixed(1)} €</div>
+  <div class="drink-controls">
+    <button onclick="changeQty(${i}, -1)">−</button>
+    <span id="qty-${i}">0</span>
+    <button onclick="changeQty(${i}, 1)">+</button>
+  </div>
     `;
     list.appendChild(div);
   });
