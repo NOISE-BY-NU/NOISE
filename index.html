@@ -35,7 +35,7 @@
     .drink-controls {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
+      gap: 1.2rem; /* größerer Abstand */
     }
     .drink-controls button {
       background: #f09;
@@ -76,6 +76,16 @@
       border: none;
       border-radius: 8px;
     }
+    .reset-order-btn {
+      background: #f00;
+      color: white;
+      padding: 0.5rem;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      margin-top: 0.5rem;
+      font-size: 1rem;
+    }
     input[type="number"] {
       width: 100%;
       padding: 0.4rem;
@@ -107,6 +117,7 @@
   <input type="number" id="cashInput" placeholder="oder Betrag eingeben" oninput="updateChange()" />
   <div class="total-line"><b>Rückgeld:</b> <span id="change">0.00 €</span></div>
   <button class="done-btn" onclick="completeOrder()">Bestellung abschließen</button>
+  <button class="reset-order-btn" onclick="resetOrder()">Bestellung zurücksetzen</button>
 </div>
 
 <div class="summary">
@@ -194,6 +205,10 @@ function completeOrder() {
   });
   localStorage.setItem("stats", JSON.stringify(stats));
   updateStats();
+  resetOrder();
+}
+
+function resetOrder() {
   order = {};
   givenCash = 0;
   document.querySelectorAll("span[id^='qty-']").forEach(el => el.textContent = "0");
