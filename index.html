@@ -14,9 +14,8 @@
       color: white;
       margin: 0;
       padding: 0.5rem;
-      max-width: 375px;
-      margin-left: auto;
-      margin-right: auto;
+      max-width: 400px;
+      margin: 0 auto;
     }
     h1, h2, h3 {
       text-align: center;
@@ -36,20 +35,15 @@
     .drink-controls {
       display: flex;
       align-items: center;
-      gap: 1.4rem; /* Abstand zwischen minus, qty, plus */
-      min-width: 110px;
-      justify-content: center;
+      gap: 0.6rem;
     }
     .drink-controls button {
       background: #f09;
       color: white;
       border: none;
-      padding: 0.4rem 0.9rem;
-      font-size: 1.2rem;
-      border-radius: 6px;
-      margin: 0;
-      user-select: none;
-      cursor: pointer;
+      padding: 0.3rem 0.6rem;
+      font-size: 1.1rem;
+      border-radius: 4px;
     }
     .summary {
       margin-top: 1rem;
@@ -58,23 +52,14 @@
       border-radius: 8px;
       font-size: 0.9rem;
     }
-    .money-buttons {
-      margin-top: 0.3rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-    }
     .money-buttons button {
+      margin: 0.2rem 0.3rem 0.2rem 0;
       background: #444;
       color: white;
       border: none;
-      padding: 0.5rem 0.8rem;
+      padding: 0.4rem 0.6rem;
       border-radius: 4px;
-      font-size: 0.95rem;
-      user-select: none;
-      cursor: pointer;
-      min-width: 50px;
-      text-align: center;
+      font-size: 0.9rem;
     }
     .total-line {
       display: flex;
@@ -90,8 +75,6 @@
       color: black;
       border: none;
       border-radius: 8px;
-      user-select: none;
-      cursor: pointer;
     }
     input[type="number"] {
       width: 100%;
@@ -100,33 +83,11 @@
       font-size: 0.95rem;
       border-radius: 5px;
       border: none;
-      -moz-appearance:textfield;
     }
-    input[type=number]::-webkit-inner-spin-button, 
-    input[type=number]::-webkit-outer-spin-button { 
-      -webkit-appearance: none;
-      margin: 0; 
-    }
-    /* Statistik Reset Container */
-    .stats-reset-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      margin-top: 0.8rem;
-      font-size: 0.75rem;
-      color: #aaa;
-      flex-wrap: wrap;
-    }
-    .stats-reset-container button {
-      background: #a00;
-      color: white;
-      border: none;
-      padding: 0.3rem 0.6rem;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      user-select: none;
+    .reset-time {
+      font-size: 0.8rem;
+      color: #999;
+      margin-top: 0.3rem;
     }
   </style>
 </head>
@@ -143,8 +104,7 @@
 
   <h3>Gegeben:</h3>
   <div class="money-buttons" id="money-buttons"></div>
-  <input type="number" id="cashInput" placeholder="oder Betrag eingeben" oninput="updateChange()" min="0" step="0.01" />
-
+  <input type="number" id="cashInput" placeholder="oder Betrag eingeben" oninput="updateChange()" />
   <div class="total-line"><b>Rückgeld:</b> <span id="change">0.00 €</span></div>
   <button class="done-btn" onclick="completeOrder()">Bestellung abschließen</button>
 </div>
@@ -152,11 +112,8 @@
 <div class="summary">
   <h2>Statistik</h2>
   <div id="stats"></div>
-
-  <div class="stats-reset-container">
-    <button id="resetStatsBtn">Statistik löschen</button>
-    <div id="lastResetDisplay">(Letzter Reset: nie)</div>
-  </div>
+  <button class="done-btn" onclick="resetStats()">Statistik zurücksetzen</button>
+  <div class="reset-time" id="lastReset"></div>
 </div>
 
 <script>
@@ -177,21 +134,11 @@ const drinks = [
 ];
 
 let order = {};
-let stats = {};
-
-function loadStats() {
-  const saved = localStorage.getItem("stats");
-  stats = saved ? JSON.parse(saved) : {};
-}
-loadStats();
-
-function saveStats() {
-  localStorage.setItem("stats", JSON.stringify(stats));
-}
+let stats = JSON.parse(localStorage.getItem("stats") || "{}");
+let givenCash = 0;
 
 function renderDrinks() {
   const list = document.getElementById("drink-list");
-  list.innerHTML = "";
   drinks.forEach((drink, i) => {
     const div = document.createElement("div");
     div.className = "drink";
@@ -234,25 +181,21 @@ function updateSummary() {
 }
 
 function updateChange() {
-  const inputStr = document.getElementById("cashInput").value;
-  const input = parseFloat(inputStr.replace(",", ".")) || 0;
-  const totalStr = document.getElementById("total").textContent.replace("€", "").replace(",", ".");
-  const total = parseFloat(totalStr) || 0;
-  const change = input - total;
+  const input = parseFloat(document.getElementById("cashInput").value) || 0;
+  const total = parseFloat(document.getElementById("total").textContent.replace("€", "").replace(",", "."));
+  const change = (givenCash || input) - total;
   document.getElementById("change").textContent = `${(change > 0 ? change : 0).toFixed(2)} €`;
 }
 
 function completeOrder() {
-  if (Object.values(order).every(qty => qty === 0)) {
-    alert("Bitte wähle mindestens ein Getränk aus!");
-    return;
-  }
   Object.keys(order).forEach(name => {
     stats[name] = (stats[name] || 0) + order[name];
+    order[name] = 0;
   });
-  saveStats();
+  localStorage.setItem("stats", JSON.stringify(stats));
   updateStats();
   order = {};
+  givenCash = 0;
   document.querySelectorAll("span[id^='qty-']").forEach(el => el.textContent = "0");
   document.getElementById("cashInput").value = "";
   updateSummary();
@@ -262,81 +205,58 @@ function updateStats() {
   const statDiv = document.getElementById("stats");
   statDiv.innerHTML = "";
   Object.keys(stats).forEach(name => {
-    if (stats[name] > 0) {
-      const p = document.createElement("div");
-      p.className = "total-line";
-      p.innerHTML = `<span>${name}</span><span>${stats[name]}</span>`;
-      statDiv.appendChild(p);
-    }
+    const p = document.createElement("div");
+    p.className = "total-line";
+    p.innerHTML = `<span>${name}</span><span>${stats[name]}</span>`;
+    statDiv.appendChild(p);
   });
+
+  const lastReset = localStorage.getItem("lastReset");
+  if (lastReset) {
+    document.getElementById("lastReset").textContent = `Zuletzt zurückgesetzt: ${lastReset}`;
+  }
 }
-updateStats();
 
 function renderMoneyButtons() {
   const container = document.getElementById("money-buttons");
-  container.innerHTML = "";
-  const amounts = [0.5, 1, 2, 5, 10, 20, 50, 100];
-  amounts.forEach(amount => {
+  [0.5, 1, 2, 5, 10, 20, 50, 100].forEach(amount => {
     const btn = document.createElement("button");
-    btn.textContent = (amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)) + "€";
+    btn.textContent = `${amount}€`;
     btn.onclick = () => {
-      let current = parseFloat(document.getElementById("cashInput").value.replace(",", ".")) || 0;
-      current += amount;
-      current = Math.round(current * 100) / 100;
-      document.getElementById("cashInput").value = current.toFixed(2);
+      givenCash += amount;
+      document.getElementById("cashInput").value = givenCash.toFixed(2);
       updateChange();
     };
     container.appendChild(btn);
   });
-  
-  // Reset Button genauso gestalten und hinzufügen
+
   const resetBtn = document.createElement("button");
-  resetBtn.textContent = "↺ Reset";
-  resetBtn.title = "Geld zurücksetzen";
+  resetBtn.textContent = "Reset";
   resetBtn.onclick = () => {
+    givenCash = 0;
     document.getElementById("cashInput").value = "";
     updateChange();
   };
   container.appendChild(resetBtn);
 }
 
-// Statistik Reset Feature
-function formatDateTime(date) {
-  const d = date.getDate().toString().padStart(2,'0');
-  const m = (date.getMonth()+1).toString().padStart(2,'0');
-  const y = date.getFullYear();
-  const h = date.getHours().toString().padStart(2,'0');
-  const min = date.getMinutes().toString().padStart(2,'0');
-  return `${d}.${m}.${y} ${h}:${min}`;
-}
-
-function updateLastResetDisplay() {
-  const lastResetDisplay = document.getElementById("lastResetDisplay");
-  const timestamp = localStorage.getItem("statsLastReset");
-  if (timestamp) {
-    const date = new Date(parseInt(timestamp));
-    lastResetDisplay.textContent = `(Letzter Reset: ${formatDateTime(date)})`;
-  } else {
-    lastResetDisplay.textContent = "(Letzter Reset: nie)";
-  }
-}
-
-document.getElementById("resetStatsBtn").addEventListener("click", () => {
-  if (confirm("Willst du wirklich die Statistik löschen?")) {
-    localStorage.removeItem("stats");
+function resetStats() {
+  const password = prompt("Passwort zum Zurücksetzen der Statistik:");
+  if (password === "1234") {
     stats = {};
+    localStorage.removeItem("stats");
+    const now = new Date();
+    const timestamp = now.toLocaleString("de-DE");
+    localStorage.setItem("lastReset", timestamp);
     updateStats();
-    const now = Date.now();
-    localStorage.setItem("statsLastReset", now.toString());
-    updateLastResetDisplay();
+  } else {
+    alert("Falsches Passwort.");
   }
-});
+}
 
-// Initial Setup
 renderDrinks();
 renderMoneyButtons();
-updateLastResetDisplay();
-
+updateStats();
 </script>
 
 </body>
