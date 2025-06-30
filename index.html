@@ -2,23 +2,20 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>NOISE Kasse</title>
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0.5rem;
+    * {
+      box-sizing: border-box;
+    }
+    body {
       font-family: sans-serif;
       background: black;
       color: white;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      max-width: 100%;
-    }
-    body {
-      min-height: 100vh;
-      /* max-width und margin auto entfernt */
+      margin: 0;
+      padding: 0.5rem;
+      max-width: 375px;
+      margin: 0 auto;
     }
     h1, h2, h3 {
       text-align: center;
@@ -38,15 +35,22 @@
     .drink-controls {
       display: flex;
       align-items: center;
+      justify-content: flex-end;
+      gap: 1.5rem;
+      flex-grow: 1;
     }
     .drink-controls button {
       background: #f09;
       color: white;
       border: none;
-      padding: 0.2rem 0.5rem;
-      font-size: 1rem;
-      border-radius: 4px;
-      margin: 0 0.2rem;
+      padding: 0.5rem 1rem;
+      font-size: 1.3rem;
+      border-radius: 6px;
+    }
+    .drink-controls span {
+      font-size: 1.2rem;
+      min-width: 2rem;
+      text-align: center;
     }
     .summary {
       margin-top: 1rem;
