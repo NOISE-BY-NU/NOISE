@@ -212,9 +212,10 @@ function updateStats() {
 
 function renderMoneyButtons() {
   const container = document.getElementById("money-buttons");
-  [5, 10, 20, 50, 100].forEach(amount => {
+  container.innerHTML = ""; // Leeren für wiederholtes Aufrufen
+  [0.5, 1, 2, 5, 10, 20, 50, 100].forEach(amount => {
     const btn = document.createElement("button");
-    btn.textContent = `${amount}€`;
+    btn.textContent = `${amount.toFixed(2).replace(".", ",")}€`;
     btn.onclick = () => {
       document.getElementById("cashInput").value = amount;
       updateChange();
