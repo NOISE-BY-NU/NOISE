@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NOISE Kasse</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0.5rem;
+      font-family: sans-serif;
+      background: black;
+      color: white;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      max-width: 100%;
+    }
+    body {
+      min-height: 100vh;
+      /* max-width und margin auto entfernt */
+    }
+    h1, h2, h3 {
+      text-align: center;
+      color: #f09;
+      margin: 0.5rem 0;
+    }
+    .drink {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0.3rem 0;
+      padding: 0.4rem;
+      background: #222;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    .drink-controls {
+      display: flex;
+      align-items: center;
+    }
+    .drink-controls button {
+      background: #f09;
+      color: white;
+      border: none;
+      padding: 0.2rem 0.5rem;
+      font-size: 1rem;
+      border-radius: 4px;
+      margin: 0 0.2rem;
+    }
+    .summary {
+      margin-top: 1rem;
+      padding: 0.7rem;
+      background: #111;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .money-buttons button {
+      margin: 0.2rem 0.3rem 0.2rem 0;
+      background: #444;
+      color: white;
+      border: none;
+      padding: 0.4rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    .total-line {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.3rem;
+    }
+    .done-btn {
+      margin-top: 0.7rem;
+      width: 100%;
+      padding: 0.6rem;
+      font-size: 1.1rem;
+      background: #0f0;
+      color: black;
+      border: none;
+      border-radius: 8px;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 0.4rem;
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+      border-radius: 5px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+<h1>NOISE Kasse</h1>
+
+<div id="drink-list"></div>
+
+<div class="summary">
+  <h2>Bestellung</h2>
+  <div id="order-summary"></div>
+  <div class="total-line"><b>Gesamt:</b> <span id="total">0.00 €</span></div>
+
+  <h3>Gegeben:</h3>
+  <div class="money-buttons" id="money-buttons"></div>
+  <input type="number" id="cashInput" placeholder="oder Betrag eingeben" oninput="updateChange()" />
+
+  <div class="total-line"><b>Rückgeld:</b> <span id="change">0.00 €</span></div>
+  <button class="done-btn" onclick="completeOrder()">Bestellung abschließen</button>
+</div>
+
+<div class="summary">
+  <h2>Statistik</h2>
+  <div id="stats"></div>
+</div>
+
+<script>
+const drinks = [
+  { name: "Gin Grapefruit", price: 9 },
+  { name: "Gin Tonic", price: 9 },
+  { name: "Moscow Mule", price: 9 },
+  { name: "Vodka Soda", price: 9 },
+  { name: "Lillet Wildberry", price: 9 },
+  { name: "Basil Smash", price: 11 },
+  { name: "Like Pornstar", price: 11 },
+  { name: "Hazelnut Shot", price: 3 },
+  { name: "Tequila Shot", price: 3 },
+  { name: "Peach Shot", price: 3 },
+  { name: "Wasser", price: 3 },
+  { name: "Sarti", price: 8.5 },
+  { name: "Aperol", price: 8.5 },
+];
+
+let order = {};
+let stats = {};
+
+function renderDrinks() {
+  const list = document.getElementById("drink-list");
+  drinks.forEach((drink, i) => {
+    const div = document.createElement("div");
+    div.className = "drink";
+    div.innerHTML = `
+      <span>${drink.name} – ${drink.price}€</span>
+      <div class="drink-controls">
+        <button onclick="changeQty(${i}, -1)">-</button>
+        <span id="qty-${i}">0</span>
+        <button onclick="changeQty(${i}, 1)">+</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function changeQty(index, delta) {
+  const name = drinks[index].name;
+  order[name] = (order[name] || 0) + delta;
+  if (order[name] < 0) order[name] = 0;
+  document.getElementById(`qty-${index}`).textContent = order[name];
+  updateSummary();
+}
+
+function updateSummary() {
+  const summary = document.getElementById("order-summary");
+  summary.innerHTML = "";
+  let total = 0;
+  Object.keys(order).forEach(name => {
+    if (order[name] > 0) {
+      const drink = drinks.find(d => d.name === name);
+      const line = document.createElement("div");
+      line.className = "total-line";
+      line.innerHTML = `<span>${name} × ${order[name]}</span><span>${(drink.price * order[name]).toFixed(2)} €</span>`;
+      summary.appendChild(line);
+      total += drink.price * order[name];
+    }
+  });
+  document.getElementById("total").textContent = `${total.toFixed(2)} €`;
+  updateChange();
+}
+
+function updateChange() {
+  const input = parseFloat(document.getElementById("cashInput").value) || 0;
+  const total = parseFloat(document.getElementById("total").textContent.replace("€", "").replace(",", "."));
+  const change = input - total;
+  document.getElementById("change").textContent = `${(change > 0 ? change : 0).toFixed(2)} €`;
+}
+
+function completeOrder() {
+  Object.keys(order).forEach(name => {
+    stats[name] = (stats[name] || 0) + order[name];
+    order[name] = 0;
+  });
+  updateStats();
+  order = {};
+  document.querySelectorAll("span[id^='qty-']").forEach(el => el.textContent = "0");
+  document.getElementById("cashInput").value = "";
+  updateSummary();
+}
+
+function updateStats() {
+  const statDiv = document.getElementById("stats");
+  statDiv.innerHTML = "";
+  Object.keys(stats).forEach(name => {
+    const p = document.createElement("div");
+    p.className = "total-line";
+    p.innerHTML = `<span>${name}</span><span>${stats[name]}</span>`;
+    statDiv.appendChild(p);
+  });
+}
+
+function renderMoneyButtons() {
+  const container = document.getElementById("money-buttons");
+  [5, 10, 20, 50, 100].forEach(amount => {
+    const btn = document.createElement("button");
+    btn.textContent = `${amount}€`;
+    btn.onclick = () => {
+      document.getElementById("cashInput").value = amount;
+      updateChange();
+    };
+    container.appendChild(btn);
+  });
+}
+
+renderDrinks();
+renderMoneyButtons();
+</script>
+
+</body>
+</html>
