@@ -15,7 +15,8 @@
       margin: 0;
       padding: 0.5rem;
       max-width: 375px;
-      margin: 0 auto;
+      margin-left: auto;
+      margin-right: auto;
     }
     h1, h2, h3 {
       text-align: center;
@@ -35,22 +36,20 @@
     .drink-controls {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
-      gap: 1.5rem;
-      flex-grow: 1;
+      gap: 1.4rem; /* Abstand zwischen minus, qty, plus */
+      min-width: 110px;
+      justify-content: center;
     }
     .drink-controls button {
       background: #f09;
       color: white;
       border: none;
-      padding: 0.5rem 1rem;
-      font-size: 1.3rem;
-      border-radius: 6px;
-    }
-    .drink-controls span {
+      padding: 0.4rem 0.9rem;
       font-size: 1.2rem;
-      min-width: 2rem;
-      text-align: center;
+      border-radius: 6px;
+      margin: 0;
+      user-select: none;
+      cursor: pointer;
     }
     .summary {
       margin-top: 1rem;
@@ -59,14 +58,23 @@
       border-radius: 8px;
       font-size: 0.9rem;
     }
+    .money-buttons {
+      margin-top: 0.3rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
     .money-buttons button {
-      margin: 0.2rem 0.3rem 0.2rem 0;
       background: #444;
       color: white;
       border: none;
-      padding: 0.4rem 0.6rem;
+      padding: 0.5rem 0.8rem;
       border-radius: 4px;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
+      user-select: none;
+      cursor: pointer;
+      min-width: 50px;
+      text-align: center;
     }
     .total-line {
       display: flex;
@@ -82,6 +90,8 @@
       color: black;
       border: none;
       border-radius: 8px;
+      user-select: none;
+      cursor: pointer;
     }
     input[type="number"] {
       width: 100%;
@@ -90,6 +100,33 @@
       font-size: 0.95rem;
       border-radius: 5px;
       border: none;
+      -moz-appearance:textfield;
+    }
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none;
+      margin: 0; 
+    }
+    /* Statistik Reset Container */
+    .stats-reset-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 0.8rem;
+      font-size: 0.75rem;
+      color: #aaa;
+      flex-wrap: wrap;
+    }
+    .stats-reset-container button {
+      background: #a00;
+      color: white;
+      border: none;
+      padding: 0.3rem 0.6rem;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      user-select: none;
     }
   </style>
 </head>
@@ -106,7 +143,7 @@
 
   <h3>Gegeben:</h3>
   <div class="money-buttons" id="money-buttons"></div>
-  <input type="number" id="cashInput" placeholder="oder Betrag eingeben" oninput="updateChange()" />
+  <input type="number" id="cashInput" placeholder="oder Betrag eingeben" oninput="updateChange()" min="0" step="0.01" />
 
   <div class="total-line"><b>Rückgeld:</b> <span id="change">0.00 €</span></div>
   <button class="done-btn" onclick="completeOrder()">Bestellung abschließen</button>
@@ -115,6 +152,11 @@
 <div class="summary">
   <h2>Statistik</h2>
   <div id="stats"></div>
+
+  <div class="stats-reset-container">
+    <button id="resetStatsBtn">Statistik löschen</button>
+    <div id="lastResetDisplay">(Letzter Reset: nie)</div>
+  </div>
 </div>
 
 <script>
@@ -137,15 +179,26 @@ const drinks = [
 let order = {};
 let stats = {};
 
+function loadStats() {
+  const saved = localStorage.getItem("stats");
+  stats = saved ? JSON.parse(saved) : {};
+}
+loadStats();
+
+function saveStats() {
+  localStorage.setItem("stats", JSON.stringify(stats));
+}
+
 function renderDrinks() {
   const list = document.getElementById("drink-list");
+  list.innerHTML = "";
   drinks.forEach((drink, i) => {
     const div = document.createElement("div");
     div.className = "drink";
     div.innerHTML = `
       <span>${drink.name} – ${drink.price}€</span>
       <div class="drink-controls">
-        <button onclick="changeQty(${i}, -1)">-</button>
+        <button onclick="changeQty(${i}, -1)">−</button>
         <span id="qty-${i}">0</span>
         <button onclick="changeQty(${i}, 1)">+</button>
       </div>
@@ -181,17 +234,23 @@ function updateSummary() {
 }
 
 function updateChange() {
-  const input = parseFloat(document.getElementById("cashInput").value) || 0;
-  const total = parseFloat(document.getElementById("total").textContent.replace("€", "").replace(",", "."));
+  const inputStr = document.getElementById("cashInput").value;
+  const input = parseFloat(inputStr.replace(",", ".")) || 0;
+  const totalStr = document.getElementById("total").textContent.replace("€", "").replace(",", ".");
+  const total = parseFloat(totalStr) || 0;
   const change = input - total;
   document.getElementById("change").textContent = `${(change > 0 ? change : 0).toFixed(2)} €`;
 }
 
 function completeOrder() {
+  if (Object.values(order).every(qty => qty === 0)) {
+    alert("Bitte wähle mindestens ein Getränk aus!");
+    return;
+  }
   Object.keys(order).forEach(name => {
     stats[name] = (stats[name] || 0) + order[name];
-    order[name] = 0;
   });
+  saveStats();
   updateStats();
   order = {};
   document.querySelectorAll("span[id^='qty-']").forEach(el => el.textContent = "0");
@@ -203,29 +262,81 @@ function updateStats() {
   const statDiv = document.getElementById("stats");
   statDiv.innerHTML = "";
   Object.keys(stats).forEach(name => {
-    const p = document.createElement("div");
-    p.className = "total-line";
-    p.innerHTML = `<span>${name}</span><span>${stats[name]}</span>`;
-    statDiv.appendChild(p);
+    if (stats[name] > 0) {
+      const p = document.createElement("div");
+      p.className = "total-line";
+      p.innerHTML = `<span>${name}</span><span>${stats[name]}</span>`;
+      statDiv.appendChild(p);
+    }
   });
 }
+updateStats();
 
 function renderMoneyButtons() {
   const container = document.getElementById("money-buttons");
-  container.innerHTML = ""; // Leeren für wiederholtes Aufrufen
-  [0.5, 1, 2, 5, 10, 20, 50, 100].forEach(amount => {
+  container.innerHTML = "";
+  const amounts = [0.5, 1, 2, 5, 10, 20, 50, 100];
+  amounts.forEach(amount => {
     const btn = document.createElement("button");
-    btn.textContent = `${amount.toFixed(2).replace(".", ",")}€`;
+    btn.textContent = (amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)) + "€";
     btn.onclick = () => {
-      document.getElementById("cashInput").value = amount;
+      let current = parseFloat(document.getElementById("cashInput").value.replace(",", ".")) || 0;
+      current += amount;
+      current = Math.round(current * 100) / 100;
+      document.getElementById("cashInput").value = current.toFixed(2);
       updateChange();
     };
     container.appendChild(btn);
   });
+  
+  // Reset Button genauso gestalten und hinzufügen
+  const resetBtn = document.createElement("button");
+  resetBtn.textContent = "↺ Reset";
+  resetBtn.title = "Geld zurücksetzen";
+  resetBtn.onclick = () => {
+    document.getElementById("cashInput").value = "";
+    updateChange();
+  };
+  container.appendChild(resetBtn);
 }
 
+// Statistik Reset Feature
+function formatDateTime(date) {
+  const d = date.getDate().toString().padStart(2,'0');
+  const m = (date.getMonth()+1).toString().padStart(2,'0');
+  const y = date.getFullYear();
+  const h = date.getHours().toString().padStart(2,'0');
+  const min = date.getMinutes().toString().padStart(2,'0');
+  return `${d}.${m}.${y} ${h}:${min}`;
+}
+
+function updateLastResetDisplay() {
+  const lastResetDisplay = document.getElementById("lastResetDisplay");
+  const timestamp = localStorage.getItem("statsLastReset");
+  if (timestamp) {
+    const date = new Date(parseInt(timestamp));
+    lastResetDisplay.textContent = `(Letzter Reset: ${formatDateTime(date)})`;
+  } else {
+    lastResetDisplay.textContent = "(Letzter Reset: nie)";
+  }
+}
+
+document.getElementById("resetStatsBtn").addEventListener("click", () => {
+  if (confirm("Willst du wirklich die Statistik löschen?")) {
+    localStorage.removeItem("stats");
+    stats = {};
+    updateStats();
+    const now = Date.now();
+    localStorage.setItem("statsLastReset", now.toString());
+    updateLastResetDisplay();
+  }
+});
+
+// Initial Setup
 renderDrinks();
 renderMoneyButtons();
+updateLastResetDisplay();
+
 </script>
 
 </body>
